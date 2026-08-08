@@ -95,6 +95,8 @@
     color:var(--moon);border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;
     font-family:inherit;cursor:pointer}
   .csv-btn:active{background:var(--card)}
+  .csv-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .csv-row .csv-btn{margin:0}
 
   /* ---- 履歴 ---- */
   .hist-toggle{background:none;border:none;color:var(--soft);font-size:13px;cursor:pointer;
@@ -156,7 +158,11 @@
       </div>
       <div class="chart week" id="chart"></div>
     </div>
-    <button class="csv-btn" id="csv">CSVで書き出す</button>
+    <div class="csv-row">
+      <button class="csv-btn" id="csv">CSVで書き出す</button>
+      <button class="csv-btn" id="importBtn">CSVを読み込む</button>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
     <button class="hist-toggle" id="histToggle">記録の履歴を見る ▾</button>
     <div class="hist" id="hist"></div>
   </section>
@@ -366,6 +372,63 @@ function exportCsv(){
   URL.revokeObjectURL(url); toast('CSVを書き出しました');
 }
 
+/* ---- CSV読み込み（別ブラウザ・別端末からデータを移す用） ---- */
+// 1行を「,」で分割（"で囲まれた項目にも対応）
+function splitCsvLine(line){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else { if(ch===','){out.push(cur);cur='';} else if(ch==='"'){q=true;} else cur+=ch; }
+  }
+  out.push(cur); return out.map(s=>s.trim());
+}
+// 1行 → レコード（就寝ISO・起床ISO・睡眠分・満足度を復元）
+function rowToRecord(dateStr,bedT,wakeT,minStr,rateStr){
+  const dm=(dateStr||'').split(/[\/\-]/).map(Number);
+  if(dm.length<3||dm.some(isNaN)) return null;
+  const [by,bmo,bd]=dm;
+  const [bh,bmin]=(bedT||'').split(':').map(Number);
+  const [wh,wmin]=(wakeT||'').split(':').map(Number);
+  if([bh,bmin,wh,wmin].some(isNaN)) return null;
+  const bed=new Date(by,bmo-1,bd,bh,bmin);
+  let wake=new Date(by,bmo-1,bd,wh,wmin);
+  if(wake<=bed) wake=new Date(wake.getTime()+86400000);   // 日をまたぐ睡眠
+  let minutes=parseInt(minStr,10);
+  if(isNaN(minutes)) minutes=Math.round((wake-bed)/60000);
+  let rating=parseInt(rateStr,10); if(isNaN(rating)) rating=0;
+  rating=Math.max(0,Math.min(5,rating));
+  return {id:'imp'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    bedtime:bed.toISOString(), waketime:wake.toISOString(), minutes, rating};
+}
+// CSV全体をパース（ヘッダー名で列を探すので、多少列がずれても動く）
+function parseCsv(text){
+  text=text.replace(/^\uFEFF/,'');                        // 先頭のBOMを除去
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const header=splitCsvLine(lines[0]);
+  const col=n=>header.indexOf(n);
+  const iD=col('日付'), iB=col('就寝'), iW=col('起床'), iM=col('睡眠時間(分)'), iR=col('満足度(★)');
+  const recs=[];
+  for(let i=1;i<lines.length;i++){
+    const c=splitCsvLine(lines[i]);
+    const r=rowToRecord(c[iD], c[iB], c[iW], iM>=0?c[iM]:'', iR>=0?c[iR]:'');
+    if(r) recs.push(r);
+  }
+  return recs;
+}
+// 取り込み（同じ就寝時刻・睡眠時間のものは重複としてスキップ）
+function importRecords(newRecs){
+  const key=r=>{ const b=new Date(r.bedtime);
+    return `${b.getFullYear()}-${b.getMonth()}-${b.getDate()}-${b.getHours()}-${b.getMinutes()}-${r.minutes}`; };
+  const seen=new Set(store.records.map(key));
+  let added=0,skip=0;
+  newRecs.forEach(r=>{ const k=key(r);
+    if(seen.has(k)){skip++;} else {store.records.push(r); seen.add(k); added++;} });
+  store.records.sort((a,b)=> new Date(a.bedtime)-new Date(b.bedtime));  // 就寝時刻順に整列
+  save(); render();
+  toast(`${added}件を取り込みました${skip?`（重複${skip}件はスキップ）`:''}`);
+}
+
 /* ---- 固定要素のイベント（1回だけ登録） ---- */
 document.addEventListener('click',e=>{               // ★タップ（記録画面・履歴の両方）
   const st=e.target.closest('.star');
@@ -382,6 +445,19 @@ document.querySelectorAll('nav button').forEach(b=> b.onclick=()=>{
   document.getElementById('view-'+b.dataset.view).classList.add('active');
 });
 document.getElementById('csv').onclick=exportCsv;
+document.getElementById('importBtn').onclick=()=>document.getElementById('csvFile').click();
+document.getElementById('csvFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{ const recs=parseCsv(reader.result);
+      if(recs.length===0) toast('読み込める行がありませんでした');
+      else importRecords(recs);
+    }catch(err){ toast('読み込みに失敗しました'); }
+    e.target.value='';   // 同じファイルをもう一度選べるようにリセット
+  };
+  reader.readAsText(f);
+};
 document.getElementById('hist').addEventListener('click',e=>{ if(e.target.dataset.del) delRecord(e.target.dataset.del); });
 document.getElementById('histToggle').onclick=function(){
   const h=document.getElementById('hist'); h.classList.toggle('open');
