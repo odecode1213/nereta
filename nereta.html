@@ -40,6 +40,7 @@
     opacity:0;animation:zzz 3s ease-in-out infinite}
   .zzz.b{left:68%;font-size:15px;animation-delay:.6s}
   @keyframes zzz{0%{opacity:0;transform:translateY(6px)}30%{opacity:.9}100%{opacity:0;transform:translateY(-16px)}}
+  .streak{font-size:13px;color:var(--moon);font-weight:600;min-height:18px}
   .status{font-size:15px;color:var(--cream);margin:6px 0 2px;min-height:22px}
   .status b{color:var(--moon)}
   .sub-status{font-size:13px;color:var(--soft);min-height:18px}
@@ -138,6 +139,7 @@
   <section class="view active" id="view-log">
     <div class="hero">
       <div class="stage" id="stage"></div>
+      <div class="streak" id="streak"></div>
       <div class="status" id="status"></div>
       <div class="sub-status" id="subStatus"></div>
       <div id="actionArea"></div>
@@ -226,6 +228,19 @@ function fmtTime(iso){ const d=new Date(iso);
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function fmtDur(min){ const h=Math.floor(min/60),m=min%60; return m?`${h}時間${m}分`:`${h}時間`; }
 function dayKey(iso){ const d=new Date(iso); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+
+/* ---- 連続記録日数（就寝日ベース。今日 or 昨日を起点に、空きなく続く日数） ---- */
+function calcStreak(){
+  const days=new Set(store.records.map(r=>dayKey(r.bedtime)));
+  const cursor=new Date(); cursor.setHours(0,0,0,0);
+  const todayKey=`${cursor.getFullYear()}-${cursor.getMonth()+1}-${cursor.getDate()}`;
+  if(!days.has(todayKey)) cursor.setDate(cursor.getDate()-1);   // 今日未記録なら昨日を起点に
+  let count=0;
+  while(days.has(`${cursor.getFullYear()}-${cursor.getMonth()+1}-${cursor.getDate()}`)){
+    count++; cursor.setDate(cursor.getDate()-1);
+  }
+  return count;
+}
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg;
   t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
 
@@ -257,9 +272,13 @@ function delRecord(id){ store.records=store.records.filter(r=>r.id!==id);
    ========================================================= */
 function render(){
   const stage=document.getElementById('stage');
+  const streak=document.getElementById('streak');
   const status=document.getElementById('status');
   const subStatus=document.getElementById('subStatus');
   const area=document.getElementById('actionArea');
+
+  const streakDays=calcStreak();
+  streak.textContent=streakDays>0?`🔥 ${streakDays}日連続`:'';
 
   if(store.pending){
     stage.innerHTML=bakuSVG(true)+`<span class="zzz">Z</span><span class="zzz b">z</span>`;
