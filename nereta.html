@@ -227,11 +227,18 @@ function stars(rating,recId,sm){
 function fmtTime(iso){ const d=new Date(iso);
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function fmtDur(min){ const h=Math.floor(min/60),m=min%60; return m?`${h}時間${m}分`:`${h}時間`; }
-function dayKey(iso){ const d=new Date(iso); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+/* ---- 「睡眠の夜」の日付：就寝が正午より前なら前日の夜として数える（深夜0時またぎ対策） ---- */
+function nightDate(iso){
+  const d=new Date(iso);
+  if(d.getHours()<12) d.setDate(d.getDate()-1);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function nightKey(iso){ const d=nightDate(iso); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
 
-/* ---- 連続記録日数（就寝日ベース。今日 or 昨日を起点に、空きなく続く日数） ---- */
+/* ---- 連続記録日数（睡眠の夜ベース。今日 or 昨日を起点に、空きなく続く日数） ---- */
 function calcStreak(){
-  const days=new Set(store.records.map(r=>dayKey(r.bedtime)));
+  const days=new Set(store.records.map(r=>nightKey(r.bedtime)));
   const cursor=new Date(); cursor.setHours(0,0,0,0);
   const todayKey=`${cursor.getFullYear()}-${cursor.getMonth()+1}-${cursor.getDate()}`;
   if(!days.has(todayKey)) cursor.setDate(cursor.getDate()-1);   // 今日未記録なら昨日を起点に
@@ -313,7 +320,7 @@ function render(){
 /* 期間ごとにグラフ用データを組み立てる */
 function periodData(period){
   const dayMap={};
-  store.records.forEach(r=>{ const k=dayKey(r.bedtime); dayMap[k]=(dayMap[k]||0)+r.minutes; });
+  store.records.forEach(r=>{ const k=nightKey(r.bedtime); dayMap[k]=(dayMap[k]||0)+r.minutes; });
   let bars=[];
   if(period==='week'||period==='month'){
     const n=period==='week'?7:30;
@@ -326,7 +333,7 @@ function periodData(period){
     }
   }else{ // 1年：直近12ヶ月、1晩あたりの平均睡眠
     const mMin={},mNights={},seen={};
-    store.records.forEach(r=>{ const d=new Date(r.bedtime); const mk=`${d.getFullYear()}-${d.getMonth()}`;
+    store.records.forEach(r=>{ const d=nightDate(r.bedtime); const mk=`${d.getFullYear()}-${d.getMonth()}`;
       mMin[mk]=(mMin[mk]||0)+r.minutes;
       const nk=mk+'-'+d.getDate(); if(!seen[nk]){seen[nk]=1; mNights[mk]=(mNights[mk]||0)+1;} });
     for(let i=11;i>=0;i--){
