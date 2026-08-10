@@ -68,16 +68,25 @@
   .rate-wrap{margin:16px 0 2px}
 
   /* ---- グラフタブ ---- */
-  .panel{background:var(--card);border-radius:18px;padding:18px 16px;margin-top:16px;box-shadow:var(--shadow)}
-  .panel-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .panel{background:var(--card);border-radius:18px;padding:22px 18px;margin-top:20px;box-shadow:var(--shadow)}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
   .panel-head h2{font-size:15px;margin:0;font-weight:700}
+  .panel-head-right{display:flex;align-items:center;gap:10px}
   .avg{font-size:12px;color:var(--soft)}
   .avg b{color:var(--moon);font-size:15px}
+  .gear-btn{background:none;border:none;color:var(--soft);font-size:17px;line-height:1;
+    cursor:pointer;padding:6px;border-radius:9px;transition:background .15s}
+  .gear-btn:active{background:rgba(255,255,255,.08)}
 
-  .seg{display:flex;background:var(--night);border-radius:10px;padding:3px;margin-bottom:16px}
-  .seg button{flex:1;background:none;border:none;color:var(--soft);padding:8px;border-radius:8px;
+  .seg{display:flex;background:var(--night);border-radius:10px;padding:4px;margin-bottom:18px}
+  .seg button{flex:1;background:none;border:none;color:#9095BE;padding:9px 8px;border-radius:8px;
     font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
-  .seg button.on{background:var(--indigo);color:#fff}
+  .seg button.on{background:linear-gradient(180deg,#8990DF,#6971CE);color:#fff;font-weight:800;
+    box-shadow:0 3px 10px rgba(88,96,192,.4), inset 0 1px 0 rgba(255,255,255,.16)}
+
+  .insight{font-size:13.5px;color:#CFCBE6;line-height:1.65;margin:18px 2px 0;min-height:20px}
+  .insight b{color:var(--moon)}
+  .insight.subtle{color:#666C99}
 
   .chart{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:150px}
   .chart.month{gap:2px}
@@ -92,35 +101,56 @@
   .chart.month .bar-lbl{font-size:9px}
   .col.today .bar-lbl{color:var(--moon);font-weight:700}
 
-  .csv-btn{display:block;margin:16px auto 0;background:none;border:1px solid #3A4070;
+  .csv-btn{display:block;margin:0;background:none;border:1px solid #3A4070;
     color:var(--moon);border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;
     font-family:inherit;cursor:pointer}
-  .csv-btn:active{background:var(--card)}
-  .csv-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
-  .csv-row .csv-btn{margin:0}
+  .csv-btn:active{background:var(--night)}
+  .csv-row{display:flex;gap:12px;justify-content:center;margin-top:10px;flex-wrap:wrap}
 
   /* ---- 履歴 ---- */
   .hist-toggle{background:none;border:none;color:var(--soft);font-size:13px;cursor:pointer;
-    margin:16px auto 0;display:block;padding:6px}
-  .hist{display:none;margin-top:6px}
+    margin:26px auto 0;display:block;padding:6px}
+  .hist{display:none;margin-top:12px}
   .hist.open{display:block}
-  .hrow{display:flex;flex-direction:column;gap:8px;background:var(--card);border-radius:12px;
-    padding:12px 14px;margin-bottom:8px;font-size:14px}
-  .hrow-main{display:flex;align-items:center;gap:10px}
-  .hrow .d{color:var(--soft);font-size:13px;min-width:70px}
-  .hrow .times{color:var(--soft);font-size:13px}
-  .hrow .dur{font-weight:700;margin-left:auto}
-  .hrow .x{background:none;border:none;color:#C98A8A;font-size:16px;cursor:pointer;padding:2px 4px}
+  .hrow{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;
+    padding:16px 16px;margin-bottom:10px}
+  .hrow-info{flex:1;min-width:0}
+  .hrow-dur{font-size:20px;font-weight:800;color:var(--cream);line-height:1.2}
+  .hrow-meta{font-size:12px;color:#767CA8;margin-top:4px}
+  .hrow .stars.sm{margin-top:8px}
+  .hrow .x{background:none;border:none;color:#565C8C;font-size:15px;cursor:pointer;
+    padding:4px 8px;border-radius:8px;flex-shrink:0;transition:.15s}
+  .hrow .x:active{color:#D08F8F;background:rgba(208,143,143,.14)}
   .empty{color:var(--soft);font-size:13px;text-align:center;padding:20px}
 
+  /* ---- 設定パネル（記録を手入力・CSV） ---- */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,12,26,.62);backdrop-filter:blur(2px);
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:60}
+  .modal-backdrop.open{opacity:1;pointer-events:auto}
+  .modal{position:fixed;left:50%;bottom:0;transform:translate(-50%,105%);width:100%;max-width:460px;
+    max-height:84vh;overflow-y:auto;background:var(--card);border-radius:20px 20px 0 0;
+    box-shadow:var(--shadow);z-index:61;transition:transform .28s ease;
+    padding:20px 20px calc(28px + env(safe-area-inset-bottom))}
+  .modal.open{transform:translate(-50%,0)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .modal-head h3{font-size:16px;margin:0;font-weight:700}
+  .modal-close{background:none;border:none;color:var(--soft);font-size:16px;cursor:pointer;
+    padding:6px;border-radius:9px}
+  .modal-close:active{background:rgba(255,255,255,.08)}
+  .settings-block{margin-bottom:26px}
+  .settings-block:last-child{margin-bottom:0}
+  .settings-label{font-size:12px;color:var(--soft);margin-bottom:10px;font-weight:600;letter-spacing:.03em}
+  .manual-toggle{background:none;border:none;color:var(--soft);font-size:13px;cursor:pointer;
+    padding:6px 0;display:block;font-family:inherit}
+
   /* ---- 記録を手入力 ---- */
-  .manual-form{display:none;margin-top:10px;background:var(--card);border-radius:14px;
-    padding:16px;box-shadow:var(--shadow)}
+  .manual-form{display:none;margin-top:12px;background:var(--night);border-radius:14px;
+    padding:16px}
   .manual-form.open{display:block}
   .mf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
   .mf-row label{font-size:13px;color:var(--soft);min-width:56px}
   .mf-row input[type=date],.mf-row input[type=time]{
-    flex:1;background:var(--night);border:1px solid #3A4070;border-radius:8px;color:var(--cream);
+    flex:1;background:var(--card);border:1px solid #3A4070;border-radius:8px;color:var(--cream);
     padding:8px 10px;font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
   .mf-error{color:#E48A8A;font-size:12px;min-height:16px;margin:-2px 0 10px}
   .mf-save{display:block;width:100%;background:linear-gradient(var(--indigo),#5860C0);border:none;
@@ -166,7 +196,10 @@
     <div class="panel">
       <div class="panel-head">
         <h2>睡眠グラフ</h2>
-        <span class="avg" id="avg"></span>
+        <div class="panel-head-right">
+          <span class="avg" id="avg"></span>
+          <button class="gear-btn" id="settingsBtn" aria-label="設定">⚙️</button>
+        </div>
       </div>
       <div class="seg">
         <button class="on" data-p="week">1週間</button>
@@ -174,21 +207,8 @@
         <button data-p="year">1年</button>
       </div>
       <div class="chart week" id="chart"></div>
+      <p class="insight" id="insight"></p>
     </div>
-    <button class="hist-toggle" id="manualToggle">記録を手入力 ▾</button>
-    <div class="manual-form" id="manualForm">
-      <div class="mf-row"><label for="mfDate">日付</label><input type="date" id="mfDate"></div>
-      <div class="mf-row"><label for="mfBed">就寝</label><input type="time" id="mfBed"></div>
-      <div class="mf-row"><label for="mfWake">起床</label><input type="time" id="mfWake"></div>
-      <div class="mf-row"><label>満足度</label><span id="mfStars"></span></div>
-      <div class="mf-error" id="mfError"></div>
-      <button class="mf-save" id="mfSave">保存する</button>
-    </div>
-    <div class="csv-row">
-      <button class="csv-btn" id="csv">CSVで書き出す</button>
-      <button class="csv-btn" id="importBtn">CSVを読み込む</button>
-    </div>
-    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
     <button class="hist-toggle" id="histToggle">記録の履歴を見る ▾</button>
     <div class="hist" id="hist"></div>
   </section>
@@ -198,6 +218,33 @@
   <button class="on" data-view="log"><span class="ico">🌙</span>記録</button>
   <button data-view="graph"><span class="ico">📊</span>グラフ</button>
 </nav>
+
+<div class="modal-backdrop" id="settingsBackdrop"></div>
+<div class="modal" id="settingsModal">
+  <div class="modal-head">
+    <h3>設定</h3>
+    <button class="modal-close" id="settingsClose" aria-label="閉じる">✕</button>
+  </div>
+  <div class="settings-block">
+    <button class="manual-toggle" id="manualToggle">記録を手入力 ▾</button>
+    <div class="manual-form" id="manualForm">
+      <div class="mf-row"><label for="mfDate">日付</label><input type="date" id="mfDate"></div>
+      <div class="mf-row"><label for="mfBed">就寝</label><input type="time" id="mfBed"></div>
+      <div class="mf-row"><label for="mfWake">起床</label><input type="time" id="mfWake"></div>
+      <div class="mf-row"><label>満足度</label><span id="mfStars"></span></div>
+      <div class="mf-error" id="mfError"></div>
+      <button class="mf-save" id="mfSave">保存する</button>
+    </div>
+  </div>
+  <div class="settings-block">
+    <div class="settings-label">データのやり取り</div>
+    <div class="csv-row">
+      <button class="csv-btn" id="csv">CSVで書き出す</button>
+      <button class="csv-btn" id="importBtn">CSVを読み込む</button>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -386,6 +433,7 @@ function renderChart(){
   }).join('');
   const withData=bars.filter(b=>b.min>0);
   document.getElementById('avg').innerHTML=withData.length?`平均 <b>${fmtDur(avgMin)}</b>`:'記録がまだないよ';
+  renderInsight();
 }
 function renderHist(){
   const box=document.getElementById('hist');
@@ -394,15 +442,75 @@ function renderHist(){
   box.innerHTML=store.records.slice().reverse().map(r=>{
     const d=new Date(r.bedtime);
     return `<div class="hrow">
-      <div class="hrow-main">
-        <span class="d">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span>
-        <span class="times">${fmtTime(r.bedtime)} → ${fmtTime(r.waketime)}</span>
-        <span class="dur">${fmtDur(r.minutes)}</span>
-        <button class="x" data-del="${r.id}">×</button>
+      <div class="hrow-info">
+        <div class="hrow-dur">${fmtDur(r.minutes)}</div>
+        <div class="hrow-meta">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})・${fmtTime(r.bedtime)} → ${fmtTime(r.waketime)}</div>
+        ${stars(r.rating||0, r.id, true)}
       </div>
-      ${stars(r.rating||0, r.id, true)}
+      <button class="x" data-del="${r.id}">×</button>
     </div>`;
   }).join('');
+}
+
+/* ---- グラフ下の「気づき」 ---- */
+function nightMinutesMap(){
+  const m={};
+  store.records.forEach(r=>{ const k=nightKey(r.bedtime); m[k]=(m[k]||0)+r.minutes; });
+  return m;
+}
+function rangeStats(map,startOffset,count){
+  let sum=0,n=0,best=null;
+  for(let i=0;i<count;i++){
+    const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(startOffset+i));
+    const min=map[`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`]||0;
+    if(min>0){ sum+=min; n++; if(!best||min>best.min) best={date:d,min}; }
+  }
+  return {avg:n?Math.round(sum/n):0, nights:n, best};
+}
+function fmtDiff(min){
+  const a=Math.abs(Math.round(min));
+  if(a<60) return `${a}分`;
+  const h=Math.floor(a/60), m=a%60;
+  return m?`${h}時間${m}分`:`${h}時間`;
+}
+function buildInsight(period){
+  const GUIDE={html:'記録が増えると、ここに気づきが表示されるよ', subtle:true};
+  if(period==='year'){
+    const {bars}=periodData('year');
+    const withData=bars.filter(b=>b.min>0);
+    if(withData.length===0) return GUIDE;
+    if(withData.length===1) return {html:`${withData[0].label}の平均は <b>${fmtDur(withData[0].min)}</b> でした`, subtle:false};
+    const thisMonth=bars[bars.length-1];
+    const prevMonths=bars.slice(0,-1).filter(b=>b.min>0);
+    if(thisMonth.min>0 && prevMonths.length>=2){
+      const prevAvg=Math.round(prevMonths.reduce((s,b)=>s+b.min,0)/prevMonths.length);
+      const diff=thisMonth.min-prevAvg;
+      if(Math.abs(diff)<5) return {html:`今月の平均は <b>${fmtDur(thisMonth.min)}</b>。これまでとほぼ同じペースです`, subtle:false};
+      return {html:`今月の平均は <b>${fmtDur(thisMonth.min)}</b>。これまでの月平均より<b>${fmtDiff(diff)}</b>${diff>0?'長く':'短く'}眠れています`, subtle:false};
+    }
+    const best=withData.reduce((a,b)=>b.min>a.min?b:a);
+    return {html:`いちばんよく眠れたのは <b>${best.label}</b> でした（平均${fmtDur(best.min)}）`, subtle:false};
+  }
+  const count=period==='week'?7:30;
+  const periodLabel=period==='week'?'今週':'今月';
+  const prevLabel=period==='week'?'先週':'先月';
+  const map=nightMinutesMap();
+  const cur=rangeStats(map,0,count);
+  const prev=rangeStats(map,count,count);
+  if(cur.nights===0) return GUIDE;
+  if(cur.nights>=2 && prev.nights>=2){
+    const diff=cur.avg-prev.avg;
+    if(Math.abs(diff)<5) return {html:`${periodLabel}の平均は <b>${fmtDur(cur.avg)}</b>。${prevLabel}とほぼ同じペースです`, subtle:false};
+    return {html:`${periodLabel}の平均は <b>${fmtDur(cur.avg)}</b>。${prevLabel}より<b>${fmtDiff(diff)}</b>${diff>0?'長く':'短く'}眠れています`, subtle:false};
+  }
+  const b=cur.best;
+  return {html:`いちばんよく眠れたのは <b>${b.date.getMonth()+1}/${b.date.getDate()}</b> でした（${fmtDur(b.min)}）`, subtle:false};
+}
+function renderInsight(){
+  const {html,subtle}=buildInsight(currentPeriod);
+  const el=document.getElementById('insight');
+  el.innerHTML=html;
+  el.classList.toggle('subtle',subtle);
 }
 
 /* ---- CSV書き出し ---- */
@@ -565,6 +673,18 @@ document.getElementById('csvFile').onchange=e=>{
   };
   reader.readAsText(f);
 };
+function openSettings(){
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('settingsBackdrop').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settingsModal').classList.remove('open');
+  document.getElementById('settingsBackdrop').classList.remove('open');
+  closeManualForm();
+}
+document.getElementById('settingsBtn').onclick=openSettings;
+document.getElementById('settingsClose').onclick=closeSettings;
+document.getElementById('settingsBackdrop').onclick=closeSettings;
 document.getElementById('manualToggle').onclick=toggleManualForm;
 document.getElementById('mfSave').onclick=saveManualRecord;
 ['mfDate','mfBed','mfWake'].forEach(id=>{
