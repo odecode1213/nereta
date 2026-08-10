@@ -113,6 +113,21 @@
   .hrow .x{background:none;border:none;color:#C98A8A;font-size:16px;cursor:pointer;padding:2px 4px}
   .empty{color:var(--soft);font-size:13px;text-align:center;padding:20px}
 
+  /* ---- 記録を手入力 ---- */
+  .manual-form{display:none;margin-top:10px;background:var(--card);border-radius:14px;
+    padding:16px;box-shadow:var(--shadow)}
+  .manual-form.open{display:block}
+  .mf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .mf-row label{font-size:13px;color:var(--soft);min-width:56px}
+  .mf-row input[type=date],.mf-row input[type=time]{
+    flex:1;background:var(--night);border:1px solid #3A4070;border-radius:8px;color:var(--cream);
+    padding:8px 10px;font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
+  .mf-error{color:#E48A8A;font-size:12px;min-height:16px;margin:-2px 0 10px}
+  .mf-save{display:block;width:100%;background:linear-gradient(var(--indigo),#5860C0);border:none;
+    color:#fff;font-weight:700;font-size:14px;border-radius:10px;padding:12px;cursor:pointer;
+    font-family:inherit;transition:transform .1s ease}
+  .mf-save:active{transform:scale(.98)}
+
   /* ---- 下タブ ---- */
   nav{position:fixed;bottom:0;left:0;right:0;background:rgba(27,31,59,.94);
     backdrop-filter:blur(10px);border-top:1px solid #333a66;display:flex;
@@ -159,6 +174,15 @@
         <button data-p="year">1年</button>
       </div>
       <div class="chart week" id="chart"></div>
+    </div>
+    <button class="hist-toggle" id="manualToggle">記録を手入力 ▾</button>
+    <div class="manual-form" id="manualForm">
+      <div class="mf-row"><label for="mfDate">日付</label><input type="date" id="mfDate"></div>
+      <div class="mf-row"><label for="mfBed">就寝</label><input type="time" id="mfBed"></div>
+      <div class="mf-row"><label for="mfWake">起床</label><input type="time" id="mfWake"></div>
+      <div class="mf-row"><label>満足度</label><span id="mfStars"></span></div>
+      <div class="mf-error" id="mfError"></div>
+      <button class="mf-save" id="mfSave">保存する</button>
     </div>
     <div class="csv-row">
       <button class="csv-btn" id="csv">CSVで書き出す</button>
@@ -455,10 +479,67 @@ function importRecords(newRecs){
   toast(`${added}件を取り込みました${skip?`（重複${skip}件はスキップ）`:''}`);
 }
 
+/* ---- 記録を手入力（ボタン押し忘れた日を後から埋める） ---- */
+let manualRating=0, manualDupConfirm=false;
+function renderManualStars(){ document.getElementById('mfStars').innerHTML=stars(manualRating,null,true); }
+function resetManualForm(){
+  const t=new Date();
+  document.getElementById('mfDate').value=
+    `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  document.getElementById('mfBed').value='';
+  document.getElementById('mfWake').value='';
+  manualRating=0; manualDupConfirm=false;
+  renderManualStars();
+  document.getElementById('mfError').textContent='';
+}
+function toggleManualForm(){
+  const form=document.getElementById('manualForm');
+  const willOpen=!form.classList.contains('open');
+  form.classList.toggle('open');
+  document.getElementById('manualToggle').textContent=willOpen?'記録を手入力 ▴':'記録を手入力 ▾';
+  if(willOpen) resetManualForm();
+}
+function closeManualForm(){
+  document.getElementById('manualForm').classList.remove('open');
+  document.getElementById('manualToggle').textContent='記録を手入力 ▾';
+}
+function saveManualRecord(){
+  const err=document.getElementById('mfError');
+  const dateStr=document.getElementById('mfDate').value;
+  const bedStr=document.getElementById('mfBed').value;
+  const wakeStr=document.getElementById('mfWake').value;
+  if(!dateStr||!bedStr||!wakeStr){ err.textContent='日付・就寝・起床をすべて入力してください'; manualDupConfirm=false; return; }
+  const [y,mo,d]=dateStr.split('-').map(Number);
+  const [bh,bmin]=bedStr.split(':').map(Number);
+  const [wh,wmin]=wakeStr.split(':').map(Number);
+  const bed=new Date(y,mo-1,d,bh,bmin);
+  let wake=new Date(y,mo-1,d,wh,wmin);
+  if(wake<=bed) wake=new Date(wake.getTime()+86400000);   // 起床が就寝より早ければ翌日扱い
+  const minutes=Math.round((wake-bed)/60000);
+  if(minutes>24*60){ err.textContent='睡眠時間が24時間を超えています'; manualDupConfirm=false; return; }
+  if(bed.getTime()>Date.now()){ err.textContent='未来の日付は記録できません'; manualDupConfirm=false; return; }
+  const isDup=store.records.some(r=> new Date(r.bedtime).getTime()===bed.getTime() && r.minutes===minutes);
+  if(isDup && !manualDupConfirm){
+    err.textContent='同じ記録がすでにあります。もう一度押すと保存します';
+    manualDupConfirm=true;
+    return;
+  }
+  const rec={id:'man'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    bedtime:bed.toISOString(), waketime:wake.toISOString(), minutes, rating:manualRating};
+  store.records.push(rec);
+  store.records.sort((a,b)=> new Date(a.bedtime)-new Date(b.bedtime));   // 就寝時刻順に整列
+  save();
+  closeManualForm();
+  render();
+  toast('記録を保存したよ');
+}
+
 /* ---- 固定要素のイベント（1回だけ登録） ---- */
-document.addEventListener('click',e=>{               // ★タップ（記録画面・履歴の両方）
+document.addEventListener('click',e=>{               // ★タップ（記録画面・履歴・手入力フォーム）
   const st=e.target.closest('.star');
-  if(st && st.dataset.rec) setRating(st.dataset.rec, parseInt(st.dataset.star,10));
+  if(!st) return;
+  if(st.dataset.rec) setRating(st.dataset.rec, parseInt(st.dataset.star,10));
+  else if(st.closest('#mfStars')){ manualRating=parseInt(st.dataset.star,10); renderManualStars(); }
 });
 document.querySelectorAll('.seg button').forEach(b=> b.onclick=()=>{
   currentPeriod=b.dataset.p;
@@ -484,6 +565,11 @@ document.getElementById('csvFile').onchange=e=>{
   };
   reader.readAsText(f);
 };
+document.getElementById('manualToggle').onclick=toggleManualForm;
+document.getElementById('mfSave').onclick=saveManualRecord;
+['mfDate','mfBed','mfWake'].forEach(id=>{
+  document.getElementById(id).oninput=()=>{ manualDupConfirm=false; document.getElementById('mfError').textContent=''; };
+});
 document.getElementById('hist').addEventListener('click',e=>{ if(e.target.dataset.del) delRecord(e.target.dataset.del); });
 document.getElementById('histToggle').onclick=function(){
   const h=document.getElementById('hist'); h.classList.toggle('open');
